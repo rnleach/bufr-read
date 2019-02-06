@@ -1,4 +1,4 @@
-use crate::message::Message;
+use crate::{error::BufrErr, message::Message};
 use eccodes_sys::{codes_handle, codes_handle_new_from_file, ProductKind, CODES_SUCCESS};
 use libc;
 use std::ffi::CString;
@@ -19,14 +19,14 @@ impl Drop for BufrFile {
 }
 
 impl BufrFile {
-    pub fn new(path: &str) -> Result<Self, std::io::Error> {
+    pub fn new(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         const MODE: *const libc::c_char = "r\0".as_ptr() as *const libc::c_char;
         unsafe {
             let fname = CString::new(path)?;
             let src: *mut libc::FILE = libc::fopen(fname.as_ptr(), MODE);
 
             if src.is_null() {
-                Err(std::io::Error::from(std::io::ErrorKind::Other))
+                Err(BufrErr::NullPtr)?
             } else {
                 Ok(BufrFile { src })
             }
@@ -35,7 +35,7 @@ impl BufrFile {
 }
 
 impl Iterator for BufrFile {
-    type Item = Message;
+    type Item = Result<Message, BufrErr>;
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
@@ -46,10 +46,13 @@ impl Iterator for BufrFile {
                 ProductKind::PRODUCT_BUFR,
                 &mut error_code,
             );
-            if error_code != CODES_SUCCESS || message.is_null() {
+
+            if error_code != CODES_SUCCESS {
+                Some(Err(BufrErr::from(error_code)))
+            } else if message.is_null() {
                 None
             } else {
-                Message::new(message).ok()
+                Some(Message::new(message))
             }
         }
     }

@@ -1,8 +1,8 @@
 //
 // API
 //
-pub use error::CodesError;
-pub use message::Message;
+pub use error::BufrErr;
+pub use message::{keys::KeysIterator, Message};
 pub use source::BufrFile;
 
 //

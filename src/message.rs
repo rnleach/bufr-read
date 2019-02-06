@@ -1,9 +1,9 @@
-use crate::error::CodesError;
+use crate::error::BufrErr;
 use eccodes_sys::{
     codes_get_error_message, codes_handle, codes_handle_delete, codes_set_long, CODES_SUCCESS,
 };
 use libc;
-use std::ffi::CStr;
+use std::{borrow::Cow, ffi::CStr};
 
 /// A single message from within a data source containing bufr data.
 pub struct Message {
@@ -11,8 +11,13 @@ pub struct Message {
 }
 
 impl Message {
+    /// Get an iterator over the keys available in this message.
+    pub fn keys(&self) -> Result<impl Iterator<Item = Cow<str>>, BufrErr> {
+        keys::KeysIterator::new(self)
+    }
+
     // Create a new message.
-    pub(crate) fn new(handle: *mut codes_handle) -> Result<Self, CodesError> {
+    pub(crate) fn new(handle: *mut codes_handle) -> Result<Self, BufrErr> {
         unsafe {
             codes_check!(codes_set_long(
                 handle,
@@ -38,3 +43,5 @@ impl Drop for Message {
         }
     }
 }
+
+pub mod keys;
