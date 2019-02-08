@@ -1,9 +1,11 @@
 use crate::error::BufrErr;
 use eccodes_sys::{
-    codes_get_double, codes_get_error_message, codes_get_long, codes_handle, codes_handle_delete,
-    codes_set_long, CODES_SUCCESS,
+    codes_get_double, codes_get_double_array, codes_get_error_message, codes_get_long,
+    codes_get_size, codes_handle, codes_handle_delete, codes_set_long, CODES_MISSING_DOUBLE,
+    CODES_MISSING_LONG, CODES_SUCCESS,
 };
 use libc;
+use optional::{none, some, Optioned};
 use std::{
     borrow::Cow,
     ffi::{CStr, CString},
@@ -21,7 +23,7 @@ impl Message {
     }
 
     /// Retrieve a long value from the message.
-    pub fn long<K: Into<Vec<u8>>>(&self, key: K) -> Result<i64, BufrErr> {
+    pub fn long<K: Into<Vec<u8>>>(&self, key: K) -> Result<Optioned<i64>, BufrErr> {
         let key: CString = CString::new(key)?;
         let mut val = 0i64;
 
@@ -29,11 +31,15 @@ impl Message {
             codes_check!(codes_get_long(self.handle, key.as_ptr(), &mut val))?;
         }
 
-        Ok(val)
+        if val == CODES_MISSING_LONG {
+            Ok(none())
+        } else {
+            Ok(some(val))
+        }
     }
 
     /// Retrieve a double value from the message.
-    pub fn double<K: Into<Vec<u8>>>(&self, key: K) -> Result<f64, BufrErr> {
+    pub fn double<K: Into<Vec<u8>>>(&self, key: K) -> Result<Optioned<f64>, BufrErr> {
         let key: CString = CString::new(key)?;
         let mut val = 0f64;
 
@@ -41,7 +47,38 @@ impl Message {
             codes_check!(codes_get_double(self.handle, key.as_ptr(), &mut val))?;
         }
 
-        Ok(val)
+        if val == CODES_MISSING_DOUBLE {
+            Ok(none())
+        } else {
+            Ok(some(val))
+        }
+    }
+
+    /// Retrieve an array of double values from the message.
+    pub fn double_array<K: Into<Vec<u8>>>(&self, key: K) -> Result<Vec<Optioned<f64>>, BufrErr> {
+        let key: CString = CString::new(key)?;
+        let mut num_vals: libc::size_t = 0;
+        let mut vals: Vec<Optioned<f64>>;
+
+        unsafe {
+            codes_check!(codes_get_size(self.handle, key.as_ptr(), &mut num_vals))?;
+            vals = vec![some(0.0); num_vals as usize];
+            codes_check!(codes_get_double_array(
+                self.handle,
+                key.as_ptr(),
+                vals.as_mut_ptr() as *mut f64,
+                &mut num_vals
+            ))?;
+            vals.set_len(num_vals as usize);
+        }
+
+        for val in vals.iter_mut() {
+            if (*val).unpack() == CODES_MISSING_DOUBLE {
+                *val = none();
+            }
+        }
+
+        Ok(vals)
     }
 
     // Create a new message.
