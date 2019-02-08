@@ -66,7 +66,7 @@ impl Message {
             codes_check!(codes_get_double_array(
                 self.handle,
                 key.as_ptr(),
-                vals.as_mut_ptr() as *mut f64,
+                vals.as_mut_ptr() as *mut f64, // !! treating Optioned<f64> as f64!
                 &mut num_vals
             ))?;
             vals.set_len(num_vals as usize);
