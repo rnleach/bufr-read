@@ -1,11 +1,11 @@
 [package]
 name = "bufr-read"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Ryan <rnleach@users.noreply.github.com>"]
 edition = "2018"
 publish = false
 
 [dependencies]
-eccodes-sys = {version = "2.12.1", git = "https://github.com/rnleach/eccodes-sys.git", tag="v2.12.1"}
+eccodes-sys = {version = "2.12.2", git = "https://github.com/rnleach/eccodes-sys.git", tag="v2.12.2"}
 libc = "0.2"
 optional = "0.5"
