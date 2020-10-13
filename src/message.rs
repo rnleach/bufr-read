@@ -57,7 +57,7 @@ impl Message {
     /// Retrieve an array of double values from the message.
     pub fn double_array<K: Into<Vec<u8>>>(&self, key: K) -> Result<Vec<Optioned<f64>>, BufrErr> {
         let key: CString = CString::new(key)?;
-        let mut num_vals: libc::size_t = 0;
+        let mut num_vals: u64 = 0;
         let mut vals: Vec<Optioned<f64>>;
 
         unsafe {
