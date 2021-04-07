@@ -25,7 +25,7 @@ impl Message {
     /// Retrieve a long value from the message.
     pub fn long<K: Into<Vec<u8>>>(&self, key: K) -> Result<Optioned<i64>, BufrErr> {
         let key: CString = CString::new(key)?;
-        let mut val = 0i64;
+        let mut val: libc::c_long = 0;
 
         unsafe {
             codes_check!(codes_get_long(self.handle, key.as_ptr(), &mut val))?;
@@ -34,7 +34,7 @@ impl Message {
         if val == CODES_MISSING_LONG {
             Ok(none())
         } else {
-            Ok(some(val))
+            Ok(some(val as i64))
         }
     }
 
